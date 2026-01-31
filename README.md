@@ -28,3 +28,39 @@ npx serve . --listen 5500
 - Die Demo nutzt den `loginPopup` Flow, damit kein eigener Backend-Server nötig ist.
 - Der Access Token wird nur gekürzt angezeigt.
 - Bei Fehlern zeigt die UI zusätzlich Debug-Details (z. B. errorCode, correlationId) an.
+
+## Node.js Pendant (Server-seitiger Flow)
+
+Wenn du den OAuth2 Flow serverseitig (Node.js) testen möchtest, nutze die MSAL-Node Demo in `node-server.js`.
+
+### Voraussetzungen
+
+- Node.js 18+
+- Azure App Registration mit einem Web-Redirect (z. B. `http://localhost:4000/redirect`)
+- Client Secret (für die serverseitige App)
+
+### Einrichtung
+
+1. Dependencies installieren:
+
+```bash
+npm install
+```
+
+2. `.env.example` kopieren und Werte setzen:
+
+```bash
+cp .env.example .env
+```
+
+3. Server starten:
+
+```bash
+npm run start:node
+```
+
+4. Browser öffnen:
+
+```
+http://localhost:4000
+```
