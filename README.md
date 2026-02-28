@@ -1,0 +1,100 @@
+# Profilgenerator (Node.js)
+
+Node.js-Anwendung, die ein Profil aus JSON-Daten in ein HTML-Dokument rendert und optional als PDF exportiert.
+
+## Features
+
+- HTML-Template mit Platzhaltern (`{{...}}`) über eine eingebaute {{ }}-Template-Engine
+- Optionale Abschnitte werden automatisch ausgeblendet (z. B. `Zertifizierungen`)
+- 0..n Einträge pro Abschnitt (z. B. Projekterfahrungen)
+- Firmen-Branding über JSON-Konfiguration (Farbe, Logo, CSS)
+- Ausgabe als HTML und optional PDF (über lokales Chromium/Chrome)
+
+## Projektstruktur
+
+```text
+src/
+├─ assets/logos/            # Firmenlogos
+├─ config/                  # Firmenkonfigurationen
+├─ data/                    # Beispielprofile
+├─ styles/                  # Basis- und Firmen-CSS
+├─ templates/
+│  └─ profile.template.html # Bearbeitbares HTML-Template
+└─ index.js                 # Generator-Logik
+output/                     # Generierte Dateien
+```
+
+## Installation
+
+```bash
+npm install
+```
+
+## Nutzung
+
+### 1) Standard-HTML erzeugen
+
+```bash
+npm run generate
+```
+
+- Nutzt standardmäßig:
+  - Profil: `src/data/profile-with-certs.json`
+  - Firma: `company-a`
+- Schreibt:
+  - `output/profile.html`
+  - `output/profile.css`
+
+### 2) Profil ohne Zertifizierungen erzeugen
+
+```bash
+npm run generate:no-certs
+```
+
+Hier fehlt im JSON der Bereich `certifications`; der Abschnitt `Zertifizierungen` erscheint daher nicht im HTML.
+
+### 3) PDF exportieren
+
+```bash
+node src/index.js --company company-a --profile src/data/profile-with-certs.json --pdf
+```
+
+Zusätzlich wird `output/profile.pdf` erzeugt.
+
+## CLI-Optionen
+
+```text
+--company <name>       Firmenkonfig aus src/config/<name>.json
+--profile <path>       Profil-JSON
+--template <path>      HTML-Template (mit {{ }} Platzhaltern)
+--output-html <path>   Zielpfad für HTML
+--output-pdf <path>    Zielpfad für PDF
+--pdf                  PDF-Erzeugung aktivieren
+```
+
+## Anpassung pro Firma
+
+`src/config/company-a.json`:
+
+```json
+{
+  "companyName": "Firma A GmbH",
+  "primaryColor": "#0055A4",
+  "logoPath": "src/assets/logos/company-a.svg",
+  "cssFile": "src/styles/company-a.css"
+}
+```
+
+Für eine neue Firma einfach neue Config, neues Logo und optional neues CSS anlegen.
+
+## Template-Prinzip
+
+Das Template in `src/templates/profile.template.html` kann von Fachanwendern angepasst werden.
+
+Beispiele:
+
+- Einzelwert: `{{personal.name}}`
+- Liste: `{{#each qualifications}}...{{/each}}`
+- Optionaler Abschnitt: `{{#if (hasItems certifications)}}...{{/if}}`
+
+Damit verschwinden leere Abschnitte vollständig.

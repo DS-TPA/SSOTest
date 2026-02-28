@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Profil - {{personal.name}}</title>
+    <link rel="stylesheet" href="./profile.css" />
+  </head>
+  <body>
+    <header class="header">
+      <div>
+        <h1>Profil</h1>
+        <p class="subtitle">{{branding.companyName}}</p>
+      </div>
+      <div class="logo" aria-label="Firmenlogo"></div>
+    </header>
+
+    <main>
+      <section>
+        <h2>Projekt</h2>
+        <div class="grid two-col">
+          <div><strong>Rolle:</strong> {{project.title}}</div>
+          <div><strong>Kunde:</strong> {{project.client}}</div>
+          <div><strong>Ort:</strong> {{project.location}}</div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Persönliche Daten</h2>
+        <div class="grid two-col">
+          <div><strong>Name:</strong> {{personal.name}}</div>
+          <div><strong>E-Mail:</strong> {{personal.email}}</div>
+          <div><strong>Telefon:</strong> {{personal.phone}}</div>
+          <div><strong>Standort:</strong> {{personal.location}}</div>
+        </div>
+      </section>
+
+      {{#if (hasItems projectExperiences)}}
+      <section>
+        <h2>Projekterfahrungen</h2>
+        {{#each projectExperiences}}
+        <article class="card">
+          <h3>{{name}}</h3>
+          <p class="muted">{{from}} - {{to}}</p>
+          <p><strong>Rolle:</strong> {{role}}</p>
+          <p>{{description}}</p>
+          {{#if (hasItems technologies)}}
+          <p><strong>Technologien:</strong> {{join technologies ", "}}</p>
+          {{/if}}
+        </article>
+        {{/each}}
+      </section>
+      {{/if}}
+
+      {{#if (hasItems qualifications)}}
+      <section>
+        <h2>Qualifikationen</h2>
+        <ul>
+          {{#each qualifications}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </section>
+      {{/if}}
+
+      {{#if (hasItems certifications)}}
+      <section>
+        <h2>Zertifizierungen</h2>
+        <ul>
+          {{#each certifications}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </section>
+      {{/if}}
+
+      {{#if (hasItems other)}}
+      <section>
+        <h2>Sonstiges</h2>
+        <ul>
+          {{#each other}}
+          <li>{{this}}</li>
+          {{/each}}
+        </ul>
+      </section>
+      {{/if}}
+    </main>
+
+    <footer>
+      Generiert am: {{generatedAt}}
+    </footer>
+  </body>
+</html>
