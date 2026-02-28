@@ -87,55 +87,145 @@ function getValueByPath(context, keyPath) {
   return current == null ? '' : current;
 }
 
+function parseTemplate(template) {
+  const tokenPattern = /{{\s*([^}]+)\s*}}/g;
+
+  function parseNodes(startIndex, endTag) {
+    const nodes = [];
+    let cursor = startIndex;
+    let match = tokenPattern.exec(template);
+
+    while (match) {
+      const fullMatch = match[0];
+      const tokenRaw = match[1].trim();
+      const tokenStart = match.index;
+      const tokenEnd = tokenStart + fullMatch.length;
+
+      if (tokenStart > cursor) {
+        nodes.push({ type: 'text', value: template.slice(cursor, tokenStart) });
+      }
+
+      if (tokenRaw.startsWith('/')) {
+        const closing = tokenRaw.slice(1);
+        if (endTag && closing === endTag) {
+          return { nodes, nextIndex: tokenEnd };
+        }
+        throw new Error(`Unerwartetes Closing-Tag: ${tokenRaw}`);
+      }
+
+      if (tokenRaw.startsWith('#if ')) {
+        const expression = tokenRaw.slice(4).trim();
+        tokenPattern.lastIndex = tokenEnd;
+        const nested = parseNodes(tokenEnd, 'if');
+        nodes.push({ type: 'if', expression, children: nested.nodes });
+        cursor = nested.nextIndex;
+        tokenPattern.lastIndex = nested.nextIndex;
+        match = tokenPattern.exec(template);
+        continue;
+      }
+
+      if (tokenRaw.startsWith('#each ')) {
+        const collectionPath = tokenRaw.slice(6).trim();
+        tokenPattern.lastIndex = tokenEnd;
+        const nested = parseNodes(tokenEnd, 'each');
+        nodes.push({ type: 'each', collectionPath, children: nested.nodes });
+        cursor = nested.nextIndex;
+        tokenPattern.lastIndex = nested.nextIndex;
+        match = tokenPattern.exec(template);
+        continue;
+      }
+
+      if (tokenRaw.startsWith('join ')) {
+        const joinMatch = tokenRaw.match(/^join\s+([^\s]+)\s+"([^"]*)"$/);
+        if (!joinMatch) {
+          throw new Error(`Ungültiger join-Ausdruck: ${tokenRaw}`);
+        }
+        nodes.push({ type: 'join', path: joinMatch[1], separator: joinMatch[2] });
+      } else {
+        nodes.push({ type: 'var', path: tokenRaw });
+      }
+
+      cursor = tokenEnd;
+      match = tokenPattern.exec(template);
+    }
+
+    if (cursor < template.length) {
+      nodes.push({ type: 'text', value: template.slice(cursor) });
+    }
+
+    if (endTag) {
+      throw new Error(`Fehlendes Closing-Tag: /${endTag}`);
+    }
+
+    return { nodes, nextIndex: template.length };
+  }
+
+  tokenPattern.lastIndex = 0;
+  return parseNodes(0, null).nodes;
+}
+
+function evaluateIfExpression(expression, context) {
+  const expr = expression.trim();
+  const hasItemsMatch = expr.match(/^\(hasItems\s+([^)]+)\)$/);
+  if (!hasItemsMatch) {
+    return false;
+  }
+
+  const value = getValueByPath(context, hasItemsMatch[1].trim());
+  return Array.isArray(value) && value.length > 0;
+}
+
+function renderNodes(nodes, context) {
+  let result = '';
+
+  for (const node of nodes) {
+    switch (node.type) {
+      case 'text':
+        result += node.value;
+        break;
+      case 'var': {
+        const value = getValueByPath(context, node.path.trim());
+        result += String(value);
+        break;
+      }
+      case 'join': {
+        const arr = getValueByPath(context, node.path.trim());
+        result += Array.isArray(arr) ? arr.join(node.separator) : '';
+        break;
+      }
+      case 'if': {
+        if (evaluateIfExpression(node.expression, context)) {
+          result += renderNodes(node.children, context);
+        }
+        break;
+      }
+      case 'each': {
+        const items = getValueByPath(context, node.collectionPath.trim());
+        if (Array.isArray(items)) {
+          result += items
+            .map((item) => {
+              const itemContext = {
+                ...context,
+                ...(typeof item === 'object' && item !== null ? item : {}),
+                this: item,
+              };
+              return renderNodes(node.children, itemContext);
+            })
+            .join('');
+        }
+        break;
+      }
+      default:
+        throw new Error(`Unbekannter Template-Node: ${node.type}`);
+    }
+  }
+
+  return result;
+}
+
 function renderTemplate(template, context) {
-  const ifPattern = /{{#if\s+([^}]+)}}([\s\S]*?){{\/if}}/g;
-  let rendered = template.replace(ifPattern, (_, expression, block) => {
-    const expr = expression.trim();
-    const match = expr.match(/^\(hasItems\s+([^)]+)\)$/);
-    if (!match) {
-      return '';
-    }
-
-    const value = getValueByPath(context, match[1].trim());
-    return Array.isArray(value) && value.length > 0 ? renderTemplate(block, context) : '';
-  });
-
-  const eachPattern = /{{#each\s+([^}]+)}}([\s\S]*?){{\/each}}/g;
-  rendered = rendered.replace(eachPattern, (_, collectionPath, block) => {
-    const items = getValueByPath(context, collectionPath.trim());
-    if (!Array.isArray(items) || items.length === 0) {
-      return '';
-    }
-
-    return items
-      .map((item) => {
-        const itemContext = {
-          ...context,
-          ...(typeof item === 'object' && item !== null ? item : {}),
-          this: item,
-        };
-
-        let nested = renderTemplate(block, itemContext);
-        nested = nested.replace(/{{join\s+([^}\s]+)\s+"([^"]*)"}}/g, (_, pathKey, sep) => {
-          const arr = getValueByPath(itemContext, pathKey.trim());
-          return Array.isArray(arr) ? arr.join(sep) : '';
-        });
-        return nested;
-      })
-      .join('');
-  });
-
-  rendered = rendered.replace(/{{join\s+([^}\s]+)\s+"([^"]*)"}}/g, (_, pathKey, sep) => {
-    const arr = getValueByPath(context, pathKey.trim());
-    return Array.isArray(arr) ? arr.join(sep) : '';
-  });
-
-  rendered = rendered.replace(/{{\s*([^}]+)\s*}}/g, (_, keyPath) => {
-    const value = getValueByPath(context, keyPath.trim());
-    return String(value);
-  });
-
-  return rendered;
+  const ast = parseTemplate(template);
+  return renderNodes(ast, context);
 }
 
 async function readJson(filePath) {
