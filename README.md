@@ -55,10 +55,21 @@ Hier fehlt im JSON der Bereich `certifications`; der Abschnitt `Zertifizierungen
 
 ### 3) PDF exportieren
 
+Empfohlen über Script:
+
 ```bash
-node src/index.js --company company-a --profile src/data/profile-with-certs.json --pdf
+npm run generate:pdf
 ```
 
+Alternativ über das Standard-Script:
+
+```bash
+npm run generate -- --pdf
+```
+
+Hinweis: Je nach npm-Version wird `npm run generate --pdf` intern als npm-Flag interpretiert.
+Der Generator unterstützt dafür einen Fallback und behandelt diesen Aufruf ebenfalls als PDF-Export.
+Am zuverlässigsten bleibt aber `npm run generate -- --pdf` oder `npm run generate:pdf`.
 Zusätzlich wird `output/profile.pdf` erzeugt.
 
 ## CLI-Optionen

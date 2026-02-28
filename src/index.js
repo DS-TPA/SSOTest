@@ -7,6 +7,15 @@ const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(__dirname, '..');
 const outputDir = path.join(rootDir, 'output');
 
+function parseBooleanEnv(value) {
+  if (!value) return false;
+  return ['1', 'true', 'yes', 'on'].includes(String(value).toLowerCase());
+}
+
+function isLikelyNpmPdfShortcut() {
+  return process.env.npm_lifecycle_event === 'generate' && parseBooleanEnv(process.env.npm_config_force);
+}
+
 function parseArgs(argv) {
   const defaults = {
     company: 'company-a',
@@ -14,7 +23,7 @@ function parseArgs(argv) {
     template: 'src/templates/profile.template.html',
     outputHtml: 'output/profile.html',
     outputPdf: 'output/profile.pdf',
-    pdf: false,
+    pdf: parseBooleanEnv(process.env.npm_config_pdf) || isLikelyNpmPdfShortcut(),
   };
 
   const args = { ...defaults };
