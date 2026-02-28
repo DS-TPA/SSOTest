@@ -24,6 +24,7 @@ function parseArgs(argv) {
     outputHtml: 'output/profile.html',
     outputPdf: 'output/profile.pdf',
     pdf: parseBooleanEnv(process.env.npm_config_pdf) || isLikelyNpmPdfShortcut(),
+    browserPath: process.env.PROFILE_PDF_BROWSER || '',
   };
 
   const args = { ...defaults };
@@ -60,6 +61,10 @@ function parseArgs(argv) {
         break;
       case '--output-pdf':
         args.outputPdf = next;
+        i += 1;
+        break;
+      case '--browser-path':
+        args.browserPath = next;
         i += 1;
         break;
       default:
@@ -257,26 +262,55 @@ async function writeCssBundle(branding) {
   return `${variables}\n${baseCss}\n${companyCss}`;
 }
 
-async function generatePdfWithChromium(htmlPath, pdfPath) {
-  const candidates = ['chromium', 'chromium-browser', 'google-chrome', 'google-chrome-stable'];
-  const fileUrl = `file://${htmlPath}`;
+async function findWorkingBrowser(customBrowserPath) {
+  const candidates = [
+    customBrowserPath,
+    'chromium',
+    'chromium-browser',
+    'google-chrome',
+    'google-chrome-stable',
+    'msedge',
+    'microsoft-edge',
+    'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
+    'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
+  ].filter(Boolean);
 
   for (const cmd of candidates) {
     try {
-      await execFileAsync(cmd, [
-        '--headless',
-        '--disable-gpu',
-        `--print-to-pdf=${pdfPath}`,
-        '--no-margins',
-        fileUrl,
-      ]);
-      return;
+      await execFileAsync(cmd, ['--version']);
+      return cmd;
     } catch (error) {
-      // Try next browser binary
+      // try next candidate
     }
   }
 
-  throw new Error('Kein Chromium/Chrome Binary gefunden. Bitte Browser installieren oder --pdf weglassen.');
+  return '';
+}
+
+async function generatePdfWithChromium(htmlPath, pdfPath, customBrowserPath = '') {
+  const browserCmd = await findWorkingBrowser(customBrowserPath);
+  const fileUrl = `file://${htmlPath}`;
+
+  if (!browserCmd) {
+    throw new Error(
+      [
+        'Kein Chromium/Chrome/Edge Binary gefunden.',
+        'Installiere Chrome oder Edge und versuche es erneut.',
+        'Alternativ Browser explizit setzen mit --browser-path "<pfad-zur-exe>"',
+        'oder Umgebungsvariable PROFILE_PDF_BROWSER verwenden.',
+      ].join(' '),
+    );
+  }
+
+  await execFileAsync(browserCmd, [
+    '--headless',
+    '--disable-gpu',
+    `--print-to-pdf=${pdfPath}`,
+    '--no-margins',
+    fileUrl,
+  ]);
 }
 
 async function main() {
@@ -318,7 +352,7 @@ async function main() {
   console.log(`HTML erstellt: ${path.relative(rootDir, outputHtmlPath)}`);
 
   if (args.pdf) {
-    await generatePdfWithChromium(outputHtmlPath, outputPdfPath);
+    await generatePdfWithChromium(outputHtmlPath, outputPdfPath, args.browserPath);
     console.log(`PDF erstellt: ${path.relative(rootDir, outputPdfPath)}`);
   } else {
     console.log('PDF-Export übersprungen (verwende --pdf).');

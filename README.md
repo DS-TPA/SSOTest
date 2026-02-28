@@ -72,6 +72,19 @@ Der Generator unterstützt dafür einen Fallback und behandelt diesen Aufruf ebe
 Am zuverlässigsten bleibt aber `npm run generate -- --pdf` oder `npm run generate:pdf`.
 Zusätzlich wird `output/profile.pdf` erzeugt.
 
+Falls kein Browser automatisch gefunden wird:
+
+```bash
+node src/index.js --pdf --browser-path "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+```
+
+Alternativ per Umgebungsvariable:
+
+```bash
+set PROFILE_PDF_BROWSER=C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe
+npm run generate -- --pdf
+```
+
 ## CLI-Optionen
 
 ```text
@@ -80,6 +93,7 @@ Zusätzlich wird `output/profile.pdf` erzeugt.
 --template <path>      HTML-Template (mit {{ }} Platzhaltern)
 --output-html <path>   Zielpfad für HTML
 --output-pdf <path>    Zielpfad für PDF
+--browser-path <path>  Expliziter Pfad zu Chrome/Chromium/Edge
 --pdf                  PDF-Erzeugung aktivieren
 ```
 
