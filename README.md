@@ -85,6 +85,10 @@ set PROFILE_PDF_BROWSER=C:\\Program Files\\Google\\Chrome\\Application\\chrome.e
 npm run generate -- --pdf
 ```
 
+Hinweis zu Chrome-Fenstern:
+Der PDF-Export startet Chrome/Edge mit einem temporären Profil im Headless-Modus (`--headless=new`).
+Damit sollte kein sichtbares Startseiten-Fenster mehr aufgehen.
+
 ## CLI-Optionen
 
 ```text

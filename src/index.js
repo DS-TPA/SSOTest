@@ -1,5 +1,6 @@
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const os = require('node:os');
 const { execFile } = require('node:child_process');
 const { promisify } = require('node:util');
 
@@ -304,13 +305,26 @@ async function generatePdfWithChromium(htmlPath, pdfPath, customBrowserPath = ''
     );
   }
 
-  await execFileAsync(browserCmd, [
-    '--headless',
-    '--disable-gpu',
-    `--print-to-pdf=${pdfPath}`,
-    '--no-margins',
-    fileUrl,
-  ]);
+  const tempProfileDir = await fs.mkdtemp(path.join(os.tmpdir(), 'profile-generator-chrome-'));
+
+  try {
+    await execFileAsync(browserCmd, [
+      '--headless=new',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-extensions',
+      '--disable-sync',
+      '--disable-background-networking',
+      '--allow-file-access-from-files',
+      `--user-data-dir=${tempProfileDir}`,
+      `--print-to-pdf=${pdfPath}`,
+      '--no-margins',
+      fileUrl,
+    ]);
+  } finally {
+    await fs.rm(tempProfileDir, { recursive: true, force: true });
+  }
 }
 
 async function main() {
