@@ -127,3 +127,16 @@ Beispiele:
 - Optionaler Abschnitt: `{{#if (hasItems certifications)}}...{{/if}}`
 
 Damit verschwinden leere Abschnitte vollständig.
+
+## Profil-Editor (Formular statt JSON von Hand)
+
+Wenn du die JSON nicht manuell schreiben möchtest, kannst du den integrierten Editor nutzen:
+
+```bash
+npm run ui
+```
+
+Dann im Browser öffnen: `http://localhost:5050`
+
+Dort kannst du alle Profilfelder, Projekterfahrungen und Listen ausfüllen und mit **START** den Generator auslösen.
+Die UI erzeugt intern eine JSON (`output/ui-profile.json`) und startet denselben Prozess wie die CLI.
