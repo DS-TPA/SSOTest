@@ -140,3 +140,15 @@ Dann im Browser öffnen: `http://localhost:5050`
 
 Dort kannst du alle Profilfelder, Projekterfahrungen und Listen ausfüllen und mit **START** den Generator auslösen.
 Die UI erzeugt intern eine JSON (`output/ui-profile.json`) und startet denselben Prozess wie die CLI.
+
+
+### Neue Firmen-Config hinzufügen (z. B. `AQS.json`)
+
+1. Datei anlegen: `src/config/AQS.json`
+2. Inhalt wie bei `company-a.json` (inkl. `logoPath`, `cssFile`)
+3. UI neu starten: `npm run ui`
+
+Wichtig:
+- Im UI musst du **nichts mehr manuell im HTML ändern**. Die Firmenliste wird automatisch aus `src/config/*.json` geladen.
+- Der `company`-Wert muss dem Dateinamen ohne `.json` entsprechen (z. B. `AQS`).
+- Falls ein Name nicht passt, zeigt die API jetzt die verfügbaren Config-Namen im Fehlertext.

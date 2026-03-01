@@ -6,6 +6,7 @@ const { promisify } = require('node:util');
 
 const execFileAsync = promisify(execFile);
 const rootDir = path.resolve(__dirname, '..');
+const configDir = path.join(rootDir, 'src/config');
 const port = Number(process.env.PORT || 5050);
 
 function sendJson(res, status, payload) {
@@ -43,19 +44,48 @@ function parseBody(req) {
   });
 }
 
+async function listCompanies() {
+  const files = await fs.readdir(configDir);
+  return files
+    .filter((file) => file.endsWith('.json'))
+    .map((file) => file.replace(/\.json$/i, ''))
+    .sort((a, b) => a.localeCompare(b, 'de'));
+}
+
+async function normalizeCompany(company) {
+  const requested = (company || '').trim();
+  const available = await listCompanies();
+
+  if (!requested) {
+    return available[0] || '';
+  }
+
+  const exact = available.find((entry) => entry === requested);
+  if (exact) return exact;
+
+  const caseInsensitive = available.find((entry) => entry.toLowerCase() === requested.toLowerCase());
+  if (caseInsensitive) return caseInsensitive;
+
+  throw new Error(
+    `Unbekannte Firma "${requested}". Verfügbare Configs: ${available.join(', ') || '(keine gefunden)'}`,
+  );
+}
+
 async function runGenerate({ company, profile, pdf }) {
   const outputDir = path.join(rootDir, 'output');
   const profilePath = path.join(outputDir, 'ui-profile.json');
+  const normalizedCompany = await normalizeCompany(company);
 
   await fs.mkdir(outputDir, { recursive: true });
   await fs.writeFile(profilePath, JSON.stringify(profile, null, 2), 'utf8');
 
-  const args = ['src/index.js', '--company', company, '--profile', profilePath];
+  const args = ['src/index.js', '--company', normalizedCompany, '--profile', profilePath];
   if (pdf) args.push('--pdf');
 
   await execFileAsync('node', args, { cwd: rootDir });
 
   return {
+    company: normalizedCompany,
     outputHtml: 'output/profile.html',
     outputPdf: pdf ? 'output/profile.pdf' : '',
     openUrl: `http://localhost:${port}/output/profile.html`,
@@ -82,6 +112,11 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (req.method === 'GET' && url.pathname === '/api/companies') {
+      sendJson(res, 200, { companies: await listCompanies() });
+      return;
+    }
+
     if (req.method === 'GET' && url.pathname.startsWith('/output/')) {
       const target = path.join(rootDir, url.pathname.replace(/^\//, ''));
       await serveFile(res, target);
@@ -90,7 +125,7 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'POST' && url.pathname === '/api/generate') {
       const body = await parseBody(req);
-      const company = body.company || 'company-a';
+      const company = body.company || '';
       const profile = body.profile || {};
       const pdf = Boolean(body.pdf);
       const result = await runGenerate({ company, profile, pdf });

@@ -16,13 +16,11 @@
           <h2>Einstellungen</h2>
           <div class="grid two">
             <label>Firma
-              <select name="company" required>
-                <option value="company-a">company-a</option>
-                <option value="company-b">company-b</option>
-              </select>
+              <select name="company" id="company-select" required></select>
             </label>
             <label class="checkbox"><input type="checkbox" name="pdf" /> PDF mit erzeugen</label>
           </div>
+          <small id="company-help">Configs werden automatisch aus <code>src/config/*.json</code> geladen.</small>
         </section>
 
         <section>

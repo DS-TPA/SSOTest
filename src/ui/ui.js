@@ -3,6 +3,28 @@ const list = document.getElementById('experience-list');
 const template = document.getElementById('experience-template');
 const addBtn = document.getElementById('add-experience');
 const result = document.getElementById('result');
+const companySelect = document.getElementById('company-select');
+
+async function loadCompanies() {
+  const response = await fetch('/api/companies');
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.error || 'Konnte Firmen-Configs nicht laden');
+  }
+
+  companySelect.innerHTML = '';
+  data.companies.forEach((company) => {
+    const option = document.createElement('option');
+    option.value = company;
+    option.textContent = company;
+    companySelect.appendChild(option);
+  });
+
+  if (data.companies.length === 0) {
+    throw new Error('Keine company-Configs gefunden. Bitte src/config/*.json anlegen.');
+  }
+}
 
 function addExperience(initial = {}) {
   const node = template.content.firstElementChild.cloneNode(true);
@@ -36,18 +58,20 @@ function collectProfile() {
     location: data.get('personal.location') || '',
   };
 
-  const projectExperiences = Array.from(list.querySelectorAll('.experience-item')).map((item) => {
-    const obj = {};
-    item.querySelectorAll('[data-key]').forEach((el) => {
-      const key = el.dataset.key;
-      obj[key] = (el.value || '').trim();
-    });
-    obj.technologies = (obj.technologies || '')
-      .split(',')
-      .map((x) => x.trim())
-      .filter(Boolean);
-    return obj;
-  }).filter((exp) => exp.name);
+  const projectExperiences = Array.from(list.querySelectorAll('.experience-item'))
+    .map((item) => {
+      const obj = {};
+      item.querySelectorAll('[data-key]').forEach((el) => {
+        const key = el.dataset.key;
+        obj[key] = (el.value || '').trim();
+      });
+      obj.technologies = (obj.technologies || '')
+        .split(',')
+        .map((x) => x.trim())
+        .filter(Boolean);
+      return obj;
+    })
+    .filter((exp) => exp.name);
 
   return {
     project,
@@ -85,6 +109,7 @@ form.addEventListener('submit', async (event) => {
 
     result.textContent = [
       'Erfolg!',
+      `Firma: ${data.company}`,
       `HTML: ${data.outputHtml}`,
       data.outputPdf ? `PDF: ${data.outputPdf}` : 'PDF: nicht angefordert',
       '',
@@ -97,6 +122,14 @@ form.addEventListener('submit', async (event) => {
     result.textContent = `Fehler:\n${error.message}`;
   }
 });
+
+(async () => {
+  try {
+    await loadCompanies();
+  } catch (error) {
+    result.textContent = `Fehler beim Laden der Firmen:\n${error.message}`;
+  }
+})();
 
 addExperience({
   name: 'Beispielprojekt',
